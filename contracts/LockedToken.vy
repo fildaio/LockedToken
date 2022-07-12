@@ -204,6 +204,12 @@ def apply_transfer_ownership():
     self.future_admin = ZERO_ADDRESS
     log ApplyOwnership(_admin)
 
+
+@internal
+def _set_transfer_whitelist(_addr: address, _allow: bool):
+    self.transfer_whitelist[_addr] = _allow
+    log TransferWhitelistChanged(_addr, _allow)
+
 @external
 def mint(_to: address, _value: uint256) -> bool:
     """
@@ -222,6 +228,9 @@ def mint(_to: address, _value: uint256) -> bool:
     self.balanceOf[_to] += _value
     self._checkpoint(_to, _value)
     log Transfer(ZERO_ADDRESS, _to, _value)
+
+    if not self.transfer_whitelist[_to]:
+        self._set_transfer_whitelist(_to, True)
 
     return True
 
@@ -283,9 +292,7 @@ def set_transfer_whitelist(_addr: address, _allow: bool):
     """
 
     assert msg.sender == self.admin  # dev: admin only
-    self.transfer_whitelist[_addr] = _allow
-
-    log TransferWhitelistChanged(_addr, _allow)
+    self._set_transfer_whitelist(_addr, _allow)
 
 @external
 @nonreentrant('lock')
@@ -294,6 +301,8 @@ def unlock(_addr: address = msg.sender) -> uint256:
     @notice Unlock the locked token
     @param _addr The address to unlock
     """
+
+    assert not self.transfer_whitelist[_addr] # dev: Whitelist addresses are prohibited from unlocking
 
     # update user's unlock amount
     self._checkpoint(_addr, 0)

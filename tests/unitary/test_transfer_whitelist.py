@@ -16,11 +16,11 @@ def test_set_whitelist_admin_only(alice, bob, locked_token):
 
 def test_read_whitelist(alice, locked_token):
     isInWhitelist = locked_token.is_in_whitelist(alice)
-    assert isInWhitelist == False
-
-    locked_token.set_transfer_whitelist(alice, True, {"from": alice})
-    isInWhitelist = locked_token.is_in_whitelist(alice)
     assert isInWhitelist == True
+
+    locked_token.set_transfer_whitelist(alice, False, {"from": alice})
+    isInWhitelist = locked_token.is_in_whitelist(alice)
+    assert isInWhitelist == False
 
 
 def test_whitelist_transfer_only(alice, bob, locked_token):
@@ -34,6 +34,7 @@ def test_whitelist_transfer_only(alice, bob, locked_token):
     with brownie.reverts("dev: transfer whitelist only"):
         locked_token.transfer(bob, 10 ** 18, {"from": alice})
 
+    locked_token.set_transfer_whitelist(bob, False, {"from": alice})
     with brownie.reverts("dev: transfer whitelist only"):
         locked_token.transfer(alice, 10 ** 18, {"from": bob})
 

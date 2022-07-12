@@ -12,7 +12,7 @@ class StateMachine:
     """
 
     st_account = strategy("address", length=5)
-    st_value = strategy("uint64", min_value=10 ** 10)
+    st_value = strategy("uint64", min_value=10 ** 18)
     st_time = strategy("uint", max_value=7 * 86400)
 
     def __init__(self, accounts, coin_a, locked_token):
@@ -34,12 +34,19 @@ class StateMachine:
         """
 
         self.coin._mint_for_testing(self.token.address, st_value)
-        self.token.mint(st_account, st_value, {"from": self.accounts[0]})
+        self.token.mint(self.accounts[0], st_value, {"from": self.accounts[0]})
+        if st_account != self.accounts[0]:
+            self.token.transfer(st_account, st_value, {"from": self.accounts[0]})
+            self.balances[st_account] += st_value
+        else:
+            self.balances[self.accounts[0]] += st_value
 
-        self.balances[st_account] += st_value
         self.total_balances += st_value
 
     def rule_unlock(self, st_account):
+        if st_account == self.accounts[0]:
+            return
+
         balance_old = self.coin.balanceOf(st_account)
         self.token.unlock(st_account)
         balance_new = self.coin.balanceOf(st_account)

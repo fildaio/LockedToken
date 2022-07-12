@@ -12,7 +12,6 @@ MULTIPLIER = 10 ** 18
 @pytest.fixture(scope="module", autouse=True)
 def setup(alice, locked_token):
     locked_token.mint(alice, 10 ** 21, {"from": alice})
-    locked_token.set_transfer_whitelist(alice, True, {"from": alice})
 
 def test_unlock_amount(alice, locked_token, chain):
     unlock_amount = locked_token.unlock_amount(alice)
@@ -62,6 +61,11 @@ def test_unlock(alice, locked_token, chain, coin_a):
     chain.sleep(WEEK)
     chain.mine()
 
+    with brownie.reverts("dev: Whitelist addresses are prohibited from unlocking"):
+        locked_token.unlock(alice)
+
+    locked_token.set_transfer_whitelist(alice, False, {"from": alice})
+
     (slope_old, bias, ts) = locked_token.user_point(alice)
     total_supply_before = locked_token.totalSupply()
 
@@ -96,9 +100,8 @@ def test_unlock_amount_add(alice, bob, locked_token, chain):
     (slope, bias, ts) = locked_token.user_point(alice)
     expect = 10 ** 21 * MULTIPLIER // MONTH + 10 ** 21 * MULTIPLIER // (23 * DAY)
 
-    assert slope == expect
-    #assert approx(slope, expect, 1e-06)
-    assert bias == slope_old * WEEK // MULTIPLIER
+    assert approx(slope, expect, 1.001 / WEEK)
+    assert approx(bias, slope_old * WEEK // MULTIPLIER, 1.001 / WEEK)
 
     locked_token.checkpoint(alice)
     assert locked_token.unlock_amount(alice) == bias
@@ -133,6 +136,9 @@ def test_unlock_multiple_user(alice, bob, charlie, locked_token, chain, coin_a):
     locked_token.mint(bob, 10 ** 21, {"from": alice})
     assert locked_token.unlock_amount(bob) == 0
 
+    locked_token.set_transfer_whitelist(alice, False, {"from": alice})
+    locked_token.set_transfer_whitelist(bob, False, {"from": alice})
+
     alice_unlock = locked_token.unlock_amount_write.call(alice)
     locked_token.unlock(alice)
     alice_balance = coin_a.balanceOf(alice)
@@ -143,6 +149,7 @@ def test_unlock_multiple_user(alice, bob, charlie, locked_token, chain, coin_a):
 
     locked_token.mint(charlie, 10 ** 21, {"from": alice})
     assert locked_token.unlock_amount(charlie) == 0
+    locked_token.set_transfer_whitelist(charlie, False, {"from": alice})
 
     bob_unlock = locked_token.unlock_amount_write.call(bob)
     locked_token.unlock(bob)
