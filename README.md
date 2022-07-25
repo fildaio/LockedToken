@@ -41,6 +41,26 @@ brownie test tests/integration
 
 ## Deployment
 
+1. If you haven't already, install [Brownie](https://github.com/eth-brownie/brownie):
+
+    ```bash
+    pip install eth-brownie
+    ```
+2. Live deployment
+
+    1. Create the new network folder under [./scripts](scripts) by copying one of the existing ones, the folder name is same as network id added to brownie.(example: brownie --network esc-main, esc-main is the network id)
+
+    2. Modify deploy.py to add `LOCK_TOKEN` address, `NAME` ,  `SYMBOL`, `LOCK_START` ,  `LOCK_END`
+
+    3. Run the deploy.py script:
+
+    ```bash
+    brownie run esc-main/deploy deploy --network esc-main
+    ```
+
+    4. Once deployment done verify that a `deployment.json` file was created under the network folder, this file contains all contract addresses that have been deployed
+
+    This deploys and links LockedToken contracts.
 
 ## License
 
